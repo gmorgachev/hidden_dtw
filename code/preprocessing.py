@@ -29,3 +29,20 @@ def slice_timeseries(X: np.ndarray,
 
     return timeseries if not count\
                       else timeseries[choice(len(timeseries), count, False)]
+
+
+def split_to_sequence(X, k, w):
+    """
+    Split the timeseries into sequence of small time-series to use
+    encoder on each of them.
+
+    X: input time-series
+    k: 2*k + 1 is the length of each out time-series
+    w: step size for window
+    """
+
+    starts = range(k, len(X)-k+1, w)
+    if starts[-1] + k < len(X):
+        print("Last {0} points are not considered.".format(len(X) - starts[-1] - k))
+
+    return [X[start-k : start+k] for start in starts]
