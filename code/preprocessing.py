@@ -1,8 +1,10 @@
 import pandas as pd
 import numpy as np
+import torch
 
 from typing import List
 from numpy.random import choice, shuffle
+from torch.utils.data import Dataset
 
 CHANNELS = ['0', '1', '2']
 
@@ -27,11 +29,13 @@ def slice_timeseries(X: np.ndarray,
     starts = range(0, X.shape[0] - length, length-overlap)
     timeseries = np.array([X[start : start-overlap + length, :] for start in starts])
 
-    return timeseries if not count\
+    timeseries =  timeseries if not count\
                       else timeseries[choice(len(timeseries), count, False)]
 
+    return timeseries.tolist()
 
-def split_to_sequence(X, k, w):
+
+def split_to_sequence(X, k, w, warn=True):
     """
     Split the timeseries into sequence of small time-series to use
     encoder on each of them.
@@ -42,7 +46,31 @@ def split_to_sequence(X, k, w):
     """
 
     starts = range(k, len(X)-k+1, w)
-    if starts[-1] + k < len(X):
+    if starts[-1] + k < len(X) and warn:
         print("Last {0} points are not considered.".format(len(X) - starts[-1] - k))
 
     return [X[start-k : start+k] for start in starts]
+
+
+class SplittedDataset(Dataset):
+
+    def __init__(self, timeseries, labels, window_size, shift_size, device):
+
+        self.window_size = window_size
+        self.shift_size = shift_size
+        self.device = device
+        self.X = np.array(timeseries)
+        self.X_splitted = \
+            [split_to_sequence(x, self.window_size, self.shift_size, False) for x in timeseries]
+        self.X_splitted = torch.tensor(self.X_splitted, device=self.device, dtype=torch.float)
+        self.y = torch.tensor(labels, device=self.device, dtype=torch.float)
+
+        self.labels = labels
+        self.device = device
+        assert len(self.X) == len(self.labels)
+    
+    def __len__(self):
+        return len(self.X)
+
+    def __getitem__(self, idx):
+        return self.X_splitted[idx], self.X[idx], self.y[idx]

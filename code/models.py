@@ -5,12 +5,11 @@ from torch import nn
 
 class Encoder(nn.Module):
 
-    def __init__(self, inp_dim, hid_dim, enc_dim, batch_size, n_layers):
+    def __init__(self, inp_dim, hid_dim, enc_dim, n_layers):
         super(Encoder, self).__init__()
         self.input_dim = inp_dim
         self.hidden_dim = hid_dim
         self.encoder_dim = enc_dim
-        self.batch_size = batch_size
         self.n_layers = n_layers
 
         self.lstm = nn.LSTM(
@@ -20,21 +19,25 @@ class Encoder(nn.Module):
             
         # self.out_linear = nn.Linear(self.hidden_dim, self.encoder_dim)
 
-    def forward(self, input, h_0, c_0):
+    def forward(self, input):
         """
         input: length x batch_size x input_dim
         """
-        out, (h_n, c_n) = self.lstm(input, (h_0, c_0))
+        h_n = self.init_hidden(input)
+        c_n = self.init_hidden(input)
+        out, (h_n, c_n) = self.lstm(input, (h_n, c_n))
 
         return out, (h_n, c_n)
 
+    def init_hidden(self, x):
+        return torch.zeros(self.n_layers, x.shape[1], self.hidden_dim).to(x.device)
+
 class Decoder(nn.Module):
-    def __init__(self, inp_dim, hid_dim, enc_dim, batch_size, n_layers):
+    def __init__(self, inp_dim, hid_dim, enc_dim, n_layers):
         super(Decoder, self).__init__()
         self.input_dim = inp_dim
         self.hidden_dim = hid_dim
         self.decoder_dim = enc_dim
-        self.batch_size = batch_size
         self.n_layers = n_layers
 
         self.lstm = nn.LSTM(
@@ -42,13 +45,18 @@ class Decoder(nn.Module):
             self.hidden_dim,
             self.n_layers)
 
-    def forward(self, input, h_n, c_n):
+    def forward(self, input):
         """
         input: length x batch_size x input_dim
         """
+        h_n = self.init_hidden(input)
+        c_n = self.init_hidden(input)
         out, (h_n, c_n) = self.lstm(input, (h_n, c_n))
 
         return out, (h_n, c_n)
+
+    def init_hidden(self, x):
+        return torch.zeros(self.n_layers, x.shape[1], self.hidden_dim).to(x.device)
 
 
 class Sequence2Sequence(nn.Module):
@@ -58,8 +66,8 @@ class Sequence2Sequence(nn.Module):
         self.encoder = enc
         self.decoder = dec
 
-    def forward(self, input, h_enc, c_enc, h_dec, c_dec):
-        encoded, (h, c) = self.encoder(input, h_enc, c_enc)
-        out, _ = self.decoder(encoded, h_dec, c_dec)
+    def forward(self, input):
+        encoded, (h, c) = self.encoder(input)
+        out, _ = self.decoder(encoded)
 
         return out
