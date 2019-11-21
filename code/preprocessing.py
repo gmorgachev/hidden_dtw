@@ -4,7 +4,7 @@ import torch
 
 from typing import List
 from numpy.random import choice, shuffle
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader, TensorDataset, random_split
 
 CHANNELS = ['0', '1', '2']
 
@@ -50,6 +50,16 @@ def split_to_sequence(X, k, w, warn=True):
         print("Last {0} points are not considered.".format(len(X) - starts[-1] - k))
 
     return [X[start-k : start+k] for start in starts]
+
+
+def train_test_valid_split(dataset: TensorDataset, test_size: float, valid_size: float):
+    test_size = int(len(dataset) * test_size)
+    valid_size = int(len(dataset) * valid_size)
+    train_size = len(dataset) - test_size - valid_size
+    assert train_size > 0, "Invalid size of train set"
+    assert len(dataset) == test_size + valid_size + train_size, "Invalid sum of sizes"
+    
+    return random_split(dataset, [train_size, test_size, valid_size])
 
 
 class SplittedDataset(Dataset):
