@@ -75,3 +75,26 @@ class Sequence2Sequence(nn.Module):
         out, _ = self.decoder(encoded)
 
         return out
+    
+    
+class Autoencoder(nn.Module):
+    def __init__(self, batch_size, seq_len, in_dim, hidden_dim, n_layers=1):
+        super().__init__()
+        self.seq_len = seq_len
+        self.in_dim = in_dim
+        self.hidden_dim = hidden_dim
+        
+        self.lstm = nn.LSTM(in_dim, hidden_dim, n_layers)
+        self.linear_layer = nn.Linear(hidden_dim, in_dim)
+        
+    def forward(self, inp):
+        h0, c0 = self.get_init_state(inp.shape[1])
+        
+        out, _ = self.lstm(inp, (h0, c0))
+        out = self.linear_layer(out)
+        
+        return out
+        
+    def get_init_state(self, batch_size):
+        return torch.zeros(1, batch_size, self.hidden_dim),\
+               torch.zeros(1, batch_size, self.hidden_dim)
