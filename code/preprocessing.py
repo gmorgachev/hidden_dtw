@@ -20,19 +20,19 @@ def get_class_timeseries(label: int,
     
     return X.values
 
+
 def slice_timeseries(X: np.ndarray,
                     length: int,
                     overlap: int = 0,
                     count: int = None):
     
     assert length > overlap
-    starts = range(0, X.shape[0] - length, length-overlap)
-    timeseries = np.array([X[start : start-overlap + length, :] for start in starts])
-
-    timeseries =  timeseries if not count\
+    starts = range(0, X.shape[0] - length + 1, length-overlap)
+    timeseries = np.array([X[start : start-overlap + length] for start in starts])
+    timeseries = timeseries if not count\
                       else timeseries[choice(len(timeseries), count, False)]
 
-    return timeseries.tolist()
+    return timeseries
 
 
 def split_to_sequence(X, k, w, warn=True):
@@ -63,7 +63,8 @@ def train_test_valid_split(dataset: TensorDataset, test_size: float, valid_size:
 
 
 class SplittedDataset(Dataset):
-
+    """
+    """
     def __init__(self, timeseries, labels, window_size, shift_size, device):
 
         self.window_size = window_size

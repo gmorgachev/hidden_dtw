@@ -19,7 +19,7 @@ class Encoder(nn.Module):
             bidirectional=bidirectional)
             
         # self.out_linear = nn.Linear(self.hidden_dim, self.encoder_dim)
-
+    
     def forward(self, input):
         """
         input: length x batch_size x input_dim
