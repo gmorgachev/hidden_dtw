@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import torch
+import json
 
 from time import time
 from sklearn.neighbors import KNeighborsClassifier
@@ -9,7 +10,7 @@ from IPython.display import clear_output
 from sklearn.model_selection import train_test_split
 
 
-def classify(timeseries, hiddens, labels):
+def classify(timeseries, hiddens, labels, test_size=0.6, knn=3):
     idxs = np.arange(len(hiddens)).reshape(-1, 1)
     
     scores_hidden = []
@@ -24,12 +25,15 @@ def classify(timeseries, hiddens, labels):
     print("raw_ts: {:.3f}".format(time() - t))
 
     for i in range(100):
-        X_train, X_test, y_train, y_test = train_test_split(idxs, labels.cpu().numpy(), test_size=0.7)
-        clf = KNeighborsClassifier(metric=get_metric(matrix_ts), algorithm="brute", n_neighbors=3)
+        X_train, X_test, y_train, y_test = train_test_split(idxs, labels.cpu().numpy(),
+            test_size=test_size)
+        clf = KNeighborsClassifier(metric=get_metric(matrix_ts), algorithm="brute",
+            n_neighbors=knn)
         clf.fit(X_train, y_train)
         score = clf.score(X_test, y_test)
         scores_ts.append(score)
-        clf = KNeighborsClassifier(metric=get_metric(matrix_hidden), algorithm="brute", n_neighbors=3)
+        clf = KNeighborsClassifier(metric=get_metric(matrix_hidden), algorithm="brute",
+            n_neighbors=knn)
         clf.fit(X_train, y_train)
         score = clf.score(X_test, y_test)
         scores_hidden.append(score)
@@ -128,3 +132,10 @@ def train(model, train_ds, optim, loss_fn, valid_ds, n_step, info=None):
             valid_loss = valid(model, valid_ds, loss_fn)
             history_valid.append(valid_loss)
             model.train()
+
+
+class NumpyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return json.JSONEncoder.default(self, obj)
